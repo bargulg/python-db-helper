@@ -8,12 +8,9 @@ class SQLite(object):
         conn = sqlite3.connect(filename)
         self._cursor = conn.cursor()
         # first we need to get a list of tables
-        self._schemas = self._cursor.execute("select sql from "
-                                                "sqlite_master "
-                                          "where type='table';").fetchall()
+        self._schemas = self._cursor.execute("select sql from sqlite_master "
+                                             "where type='table';").fetchall()
         self._schemas = [row[0] for row in self._schemas]
-        # that thing actually returns a list of 1-element tuples
-        # containing table creation commands
         # now we need to get a name of every table from that list of commands
         exp = re.compile('CREATE TABLE \"(.*)\".*')
         self._table_names = [exp.match(row).group(1) for row in self._schemas]
@@ -36,11 +33,17 @@ class SQLiteTable(object):
         self.var_names = ['by_%s' % col for col in self.cols]
 
         def method(col):
-            return lambda search: self.cursor.execute('select * from %s where'
-                                                      ' %s=%s' \
-                                  % (name, col, search)).fetchall()
+            return lambda search: [dict(zip(self.cols, row)) for row in
+                                   self.cursor.execute(
+                                       "select * from %s where %s='%s'" \
+                                       % (name, col, search)).fetchall()]
         for col in self.cols:
             vars(self)['by_%s' % col] = method(col)
+
+    def get_all(self):
+        return [dict(zip(self.cols, row)) for row in self.cursor.execute(
+            'select * from %s' % self.name
+        )]
 
 
 def main():
