@@ -6,6 +6,7 @@ import re
 class SQLite(object):
     def __init__(self, filename):
         conn = sqlite3.connect(filename)
+        conn.text_factory = str
         self._cursor = conn.cursor()
         # first we need to get a list of tables
         self._schemas = self._cursor.execute("select sql from sqlite_master "
